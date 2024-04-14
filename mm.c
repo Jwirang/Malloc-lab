@@ -126,7 +126,7 @@ void *mm_malloc(size_t size)
     if(size <= DSIZE) asize = 2*DSIZE;
     else asize = DSIZE * ((size + (DSIZE) + (DSIZE - 1)) / DSIZE);
 
-    if((bp = best_fit(asize)) != NULL) {
+    if((bp = next_fit(asize)) != NULL) {
         place(bp, asize);
         pointp = bp;
         return bp;
@@ -253,20 +253,21 @@ static void *next_fit(size_t asize)
 {
     char *bp = pointp;
 
-    for (bp = NEXT_BLKP(bp); GET_SIZE(HDRP(bp)) != 0; bp = NEXT_BLKP(bp)) {
+    while (GET_SIZE(HDRP(bp)) != 0) {
         if (!GET_ALLOC(HDRP(bp)) && GET_SIZE(HDRP(bp)) >= asize) {
             pointp = bp;
             return bp;
         }
+        bp = NEXT_BLKP(bp);
     }
 
     bp = heap_listp;
     while (bp < pointp) {
-        bp = NEXT_BLKP(bp);
         if (!GET_ALLOC(HDRP(bp)) && GET_SIZE(HDRP(bp)) >= asize) {
             pointp = bp;
             return bp;
         }
+        bp = NEXT_BLKP(bp);
     }
 
     return NULL;

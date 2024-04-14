@@ -23,6 +23,7 @@ static void *extend_heap(size_t);
 static void place(void*, size_t);
 static void *find_fit(size_t);
 static void *next_fit(size_t);
+static void *best_fit(size_t);
 
 
 /*********************************************************
@@ -125,7 +126,7 @@ void *mm_malloc(size_t size)
     if(size <= DSIZE) asize = 2*DSIZE;
     else asize = DSIZE * ((size + (DSIZE) + (DSIZE - 1)) / DSIZE);
 
-    if((bp = next_fit(asize)) != NULL) {
+    if((bp = best_fit(asize)) != NULL) {
         place(bp, asize);
         pointp = bp;
         return bp;
@@ -185,16 +186,16 @@ static void *coalesce(void *bp)
 /*
  * mm_realloc - Implemented simply in terms of mm_malloc and mm_free
  */
-void *mm_realloc(void *bp, size_t size)
+void *mm_realloc(void *ptr, size_t size)
 {
-    if (bp == NULL) return mm_malloc(size);
+    if (ptr == NULL) return mm_malloc(size);
 
-    void *oldptr = bp;
+    void *oldptr = ptr;
     void *newptr;
     size_t copySize;
     
     if(size <= 0){ 
-        mm_free(bp);
+        mm_free(ptr);
         return 0;
     }
     newptr = mm_malloc(size);
@@ -216,8 +217,9 @@ static void place(void *bp, size_t asize)
     {
         PUT(HDRP(bp), PACK(asize, 1)); 
         PUT(FTRP(bp), PACK(asize, 1));
-        PUT(HDRP(NEXT_BLKP(bp)), PACK((csize - asize), 0)); 
-        PUT(FTRP(NEXT_BLKP(bp)), PACK((csize - asize), 0));
+        bp = NEXT_BLKP(bp);
+        PUT(HDRP(bp), PACK((csize - asize), 0)); 
+        PUT(FTRP(bp), PACK((csize - asize), 0));
     }
     else
     {
@@ -228,13 +230,22 @@ static void place(void *bp, size_t asize)
 
 static void *find_fit(size_t asize)
 {
-    void *bp = mem_heap_lo() + 2 * WSIZE;
-    while (GET_SIZE(HDRP(bp)) > 0)
+    // void *bp = mem_heap_lo() + 2 * WSIZE;
+    // while (GET_SIZE(HDRP(bp)) > 0)
+    // {
+    //     if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp)))) 
+    //         return bp;                                             
+    //     bp = NEXT_BLKP(bp);
+    // }
+    // return NULL;
+
+    void *bp;
+    for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp))
     {
         if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp)))) 
-            return bp;                                             
-        bp = NEXT_BLKP(bp);
+            return bp; 
     }
+
     return NULL;
 }
 
@@ -261,14 +272,20 @@ static void *next_fit(size_t asize)
     return NULL;
 }
 
+static void *best_fit(size_t asize)
+{
+    char *bp;
+    char *best_bp = NULL;
+    size_t min_size = ~0;
 
+    for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp))
+    {
+        if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp))) && (GET_SIZE(HDRP(bp)) < min_size))
+        {
+            min_size = GET_SIZE(HDRP(bp));
+            best_bp = bp;
+        }
+    }
 
-
-
-
-
-
-
-
-
-
+    return best_bp;
+}

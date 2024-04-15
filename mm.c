@@ -98,6 +98,13 @@ int mm_init(void)
     return 0;
 }
 
+/**
+ * 아래와 같은 경우에 호출
+ 1. 힙이 초기화 될 때
+ 2. mm_malloc()이 적당한 fit을 찾지 못할때
+ 정렬을 유지하기 위해 extend_heap()은 요청한 크기를 인접 2워드의 배수(8의 배수)로 반올림 하며,
+ 그 후에 메모리 시스템으로 부터 추가적인 힙 공간을 요청한다.
+*/
 static void *extend_heap(size_t words) {
     char *bp;
     size_t size = (words % 2) ? (words + 1) * WSIZE : words * WSIZE;
@@ -152,6 +159,9 @@ void mm_free(void *ptr)
     coalesce(ptr);
 }
 
+/**
+ * 할당 된 블록을 합치는 함수. 4가지 경우가 있음
+*/
 static void *coalesce(void *bp) 
 {
     size_t prev_alloc = GET_ALLOC(FTRP(PREV_BLKP(bp)));
@@ -209,6 +219,9 @@ void *mm_realloc(void *ptr, size_t size)
     return newptr;
 }
 
+/**
+ * 메모리 영역에 메모리 블록을 위치시킴
+*/
 static void place(void *bp, size_t asize)
 {
     size_t csize = GET_SIZE(HDRP(bp));
@@ -228,6 +241,9 @@ static void place(void *bp, size_t asize)
     }
 }
 
+/**
+ * 처음부터 검사하여 적합한 메모리 반환
+*/
 static void *find_fit(size_t asize)
 {
     // void *bp = mem_heap_lo() + 2 * WSIZE;
@@ -249,6 +265,9 @@ static void *find_fit(size_t asize)
     return NULL;
 }
 
+/**
+ * 가장 마지막 부터 검사하여 적합한 메모리 반환
+*/
 static void *next_fit(size_t asize)
 {
     char *bp = pointp;
@@ -273,6 +292,9 @@ static void *next_fit(size_t asize)
     return NULL;
 }
 
+/**
+ * 처음부터 끝까지 탐색하여 요청된 크기와 가장 근접한 크기의 메모리를 반환
+*/
 static void *best_fit(size_t asize)
 {
     char *bp;
